@@ -3,9 +3,10 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
+        stage('Verify Repository') {
             steps {
-                bat 'echo Code checked out'
+                bat 'echo Repository cloned successfully'
+                bat 'dir'
             }
         }
 
@@ -26,31 +27,6 @@ pipeline {
                 python -m venv venv
                 venv\\Scripts\\pip install -r requirements.txt
                 '''
-            }
-        }
-
-        stage('Deploy Backend') {
-            steps {
-                bat '''
-                cd backend
-                start cmd /k venv\\Scripts\\python app.py
-                '''
-            }
-        }
-
-        stage('Deploy Frontend') {
-            steps {
-                bat '''
-                cd frontend
-                start cmd /k venv\\Scripts\\python app.py
-                '''
-            }
-        }
-
-        stage('Verify Deployment') {
-            steps {
-                bat 'curl http://localhost:5001/api/hello'
-                bat 'curl http://localhost:5000'
             }
         }
     }
