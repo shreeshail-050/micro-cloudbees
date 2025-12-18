@@ -1,11 +1,17 @@
-kpipeline {
-
+pipeline {
     agent none
 
     stages {
 
+        stage('Checkout Code') {
+            agent { label 'linux-agent' }
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Build Image') {
-            agent { label 'linux' }
+            agent { label 'linux-agent' }
             steps {
                 sh '''
                 podman build -t docker.io/shreeshail050/todo-microservice:1.0 .
@@ -14,7 +20,7 @@ kpipeline {
         }
 
         stage('Push Image') {
-            agent { label 'linux' }
+            agent { label 'linux-agent' }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
@@ -30,7 +36,7 @@ kpipeline {
         }
 
         stage('Deploy to Kubernetes') {
-            agent { label 'controller' }
+            agent { label 'linux-agent' }
             steps {
                 sh '''
                 kubectl apply -f todo-deployment.yaml
@@ -40,7 +46,7 @@ kpipeline {
         }
 
         stage('Verify Deployment') {
-            agent { label 'controller' }
+            agent { label 'linux-agent' }
             steps {
                 sh '''
                 kubectl rollout status deployment/todo-app
@@ -50,4 +56,3 @@ kpipeline {
         }
     }
 }
-
