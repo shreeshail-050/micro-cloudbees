@@ -1,33 +1,53 @@
-pipeline {
-    agent { label 'windows' }
+kpipeline {
+
+    agent none
 
     stages {
 
-        stage('Verify Repository') {
+        stage('Build Image') {
+            agent { label 'linux' }
             steps {
-                bat 'echo Repository cloned successfully'
-                bat 'dir'
-            }
-        }
-
-        stage('Backend Setup') {
-            steps {
-                bat '''
-                cd backend
-                python -m venv venv
-                venv\\Scripts\\pip install -r requirements.txt
+                sh '''
+                podman build -t docker.io/shreeshail050/todo-microservice:1.0 .
                 '''
             }
         }
 
-        stage('Frontend Setup') {
+        stage('Push Image') {
+            agent { label 'linux' }
             steps {
-                bat '''
-                cd frontend
-                python -m venv venv
-                venv\\Scripts\\pip install -r requirements.txt
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    podman login docker.io -u $DOCKER_USER -p $DOCKER_PASS
+                    podman push docker.io/shreeshail050/todo-microservice:1.0
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            agent { label 'controller' }
+            steps {
+                sh '''
+                kubectl apply -f todo-deployment.yaml
+                kubectl apply -f todo-service.yaml
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            agent { label 'controller' }
+            steps {
+                sh '''
+                kubectl rollout status deployment/todo-app
+                kubectl get pods
                 '''
             }
         }
     }
 }
+
